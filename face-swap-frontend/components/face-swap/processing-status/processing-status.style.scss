@@ -1,0 +1,28 @@
+.processing-status {
+  @apply p-8 text-center;
+
+  &__content {
+    @apply max-w-md mx-auto;
+  }
+
+  &__title {
+    @apply text-2xl font-bold mb-6;
+  }
+
+  &__progress {
+    @apply mb-6;
+  }
+
+  &__frames {
+    @apply mt-2 text-sm text-gray-600;
+  }
+
+  &__spinner {
+    @apply mt-8;
+  }
+}
+
+.spinner {
+  @apply inline-block w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin;
+}
+

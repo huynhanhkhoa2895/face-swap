@@ -1,0 +1,749 @@
+# Face Swap Video Project - Cursor AI Rules
+
+## Core Principles
+
+1. **TypeScript Strict Mode**: Always use strict TypeScript with no 'any' types
+2. **Type Safety**: Every function, variable, and component must have explicit types
+3. **Next.js 15 App Router**: Use App Router conventions, Server/Client Components properly
+4. **Tailwind CSS 4**: Use only Tailwind 4 syntax and utilities
+5. **Code Quality**: Write clean, maintainable, and well-documented code
+
+---
+
+## TypeScript Rules
+
+### Strict Configuration
+- Enable all strict mode flags in tsconfig.json
+- No 'any' types allowed - use proper typing or 'unknown' with type guards
+- No type assertions unless absolutely necessary - prefer type guards
+- Use const assertions for literal types
+- Prefer interfaces over types for object shapes
+- Use utility types (Partial, Pick, Omit, etc.) when appropriate
+
+### Good Practices
+```typescript
+// ❌ BAD - Using 'any'
+function processData(data: any) {
+  return data.value;
+}
+
+// ✅ GOOD - Proper typing
+interface DataInput {
+  value: string;
+}
+function processData(data: DataInput): string {
+  return data.value;
+}
+
+// ❌ BAD - Type assertion without validation
+const user = data as User;
+
+// ✅ GOOD - Type guard
+function isUser(data: unknown): data is User {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'name' in data
+  );
+}
+
+if (isUser(data)) {
+  const user = data;
+}
+```
+
+### Error Handling
+```typescript
+// ✅ Always type errors properly
+try {
+  await someOperation();
+} catch (error) {
+  // Type guard for errors
+  if (error instanceof Error) {
+    console.error(error.message);
+  } else {
+    console.error('An unknown error occurred');
+  }
+}
+```
+
+---
+
+## Next.js 15 App Router Rules
+
+### File Structure
+```
+app/
+├── layout.tsx           # Root layout (Server Component)
+├── page.tsx            # Home page (Server Component)
+├── loading.tsx         # Loading UI
+├── error.tsx           # Error boundary
+├── not-found.tsx       # 404 page
+└── [feature]/
+    ├── page.tsx        # Feature page
+    └── layout.tsx      # Feature layout (optional)
+```
+
+### Server vs Client Components
+
+**Default to Server Components** - Only use Client Components when needed for:
+- Event handlers (onClick, onChange, etc.)
+- Browser APIs (localStorage, window, etc.)
+- React hooks (useState, useEffect, etc.)
+- Third-party libraries that use browser APIs
+```typescript
+// ✅ Server Component (default)
+export default async function Page() {
+  const data = await fetchData();
+  return <div>{data}</div>;
+}
+
+// ✅ Client Component (when needed)
+'use client';
+
+import { useState } from 'react';
+
+export default function InteractiveComponent() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+}
+```
+
+### Data Fetching
+```typescript
+// ✅ Use native fetch with Next.js caching
+async function getData() {
+  const res = await fetch('https://api.example.com/data', {
+    next: { revalidate: 3600 } // Cache for 1 hour
+  });
+  
+  if (!res.ok) {
+    throw new Error('Failed to fetch data');
+  }
+  
+  return res.json();
+}
+
+// ✅ Use async/await in Server Components
+export default async function Page() {
+  const data = await getData();
+  return <div>{data}</div>;
+}
+```
+
+### Dynamic Routes
+```typescript
+// app/result/[jobId]/page.tsx
+
+import { use } from 'react';
+
+interface PageProps {
+  params: Promise<{ jobId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default function Page({ params, searchParams }: PageProps) {
+  const { jobId } = use(params);
+  const resolvedSearchParams = use(searchParams);
+  
+  return <div>Job ID: {jobId}</div>;
+}
+```
+
+### Metadata API
+```typescript
+// Static metadata
+export const metadata = {
+  title: 'Face Swap',
+  description: 'Create amazing face swap videos',
+};
+
+// Dynamic metadata
+export async function generateMetadata({ params }: PageProps) {
+  const { jobId } = await params;
+  
+  return {
+    title: `Job ${jobId} - Face Swap`,
+  };
+}
+```
+
+---
+
+## Tailwind CSS 4 Rules
+
+### Configuration
+```typescript
+// tailwind.config.ts
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      // Custom configurations
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+```
+
+### Usage Rules
+```typescript
+// ✅ Use Tailwind utility classes
+<div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600">
+
+// ✅ Use arbitrary values when needed
+<div className="w-[137px] h-[42px]">
+
+// ✅ Combine with clsx for conditional classes
+import { clsx } from 'clsx';
+
+<button className={clsx(
+  'px-4 py-2 rounded',
+  isActive && 'bg-blue-500',
+  !isActive && 'bg-gray-300'
+)}>
+
+// ❌ Avoid inline styles
+<div style={{ padding: '16px' }}> // Don't do this
+
+// ✅ Use Tailwind instead
+<div className="p-4">
+```
+
+### Responsive Design
+```typescript
+// ✅ Mobile-first approach
+<div className="text-sm md:text-base lg:text-lg">
+
+// ✅ Breakpoint-specific utilities
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+```
+
+---
+
+## React Component Rules
+
+### Component Structure
+```typescript
+// ✅ Proper component structure with types
+'use client';
+
+import { useState, useCallback } from 'react';
+
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  children?: React.ReactNode;
+}
+
+export function Button({ 
+  label, 
+  onClick, 
+  variant = 'primary',
+  disabled = false,
+  children 
+}: ButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = useCallback(async () => {
+    if (disabled || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      await onClick();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [disabled, isLoading, onClick]);
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={disabled || isLoading}
+      className={clsx(
+        'px-4 py-2 rounded-lg font-semibold',
+        variant === 'primary' && 'bg-blue-500 text-white',
+        variant === 'secondary' && 'bg-gray-300 text-gray-700',
+        disabled && 'opacity-50 cursor-not-allowed'
+      )}
+    >
+      {isLoading ? 'Loading...' : children || label}
+    </button>
+  );
+}
+```
+
+### Hooks Rules
+```typescript
+// ✅ Custom hooks with proper typing
+import { useState, useEffect } from 'react';
+
+interface UseApiOptions<T> {
+  url: string;
+  initialData: T;
+}
+
+interface UseApiReturn<T> {
+  data: T;
+  loading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+}
+
+export function useApi<T>({ url, initialData }: UseApiOptions<T>): UseApiReturn<T> {
+  const [data, setData] = useState<T>(initialData);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const result = await response.json() as T;
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [url]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+```
+
+---
+
+## Backend (NestJS) Rules
+
+### Module Structure
+```typescript
+// ✅ Proper module organization
+import { Module } from '@nestjs/common';
+import { FaceSwapController } from './face-swap.controller';
+import { FaceSwapService } from './services/face-swap.service';
+import { VideoProcessingService } from './services/video-processing.service';
+import { FaceDetectionService } from './services/face-detection.service';
+
+@Module({
+  controllers: [FaceSwapController],
+  providers: [
+    FaceSwapService,
+    VideoProcessingService,
+    FaceDetectionService,
+  ],
+  exports: [FaceSwapService],
+})
+export class FaceSwapModule {}
+```
+
+### Service Pattern
+```typescript
+// ✅ Injectable services with proper typing
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+interface ProcessOptions {
+  quality: number;
+  speed: 'fast' | 'balanced' | 'quality';
+}
+
+@Injectable()
+export class VideoProcessingService {
+  private readonly logger = new Logger(VideoProcessingService.name);
+
+  constructor(private readonly configService: ConfigService) {}
+
+  async processVideo(
+    inputPath: string,
+    outputPath: string,
+    options: ProcessOptions
+  ): Promise<void> {
+    this.logger.log(`Processing video: ${inputPath}`);
+    
+    try {
+      // Implementation
+    } catch (error) {
+      this.logger.error('Video processing failed', error);
+      throw error;
+    }
+  }
+}
+```
+
+### Controller Pattern
+```typescript
+// ✅ Controller with proper DTOs and decorators
+import { 
+  Controller, 
+  Post, 
+  Body, 
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException 
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadFaceSwapDto } from './dto/upload-face-swap.dto';
+
+@Controller('face-swap')
+export class FaceSwapController {
+  constructor(private readonly faceSwapService: FaceSwapService) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('image'))
+  async upload(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body() dto: UploadFaceSwapDto,
+  ): Promise<{ jobId: string }> {
+    if (!file) {
+      throw new BadRequestException('Image file is required');
+    }
+
+    const jobId = await this.faceSwapService.processUpload(file, dto);
+    
+    return { jobId };
+  }
+}
+```
+
+### DTO Validation
+```typescript
+// ✅ Proper DTOs with validation
+import { IsString, IsEnum, IsNotEmpty } from 'class-validator';
+import { CharacterType, Gender } from '../types/face-swap.types';
+
+export class UploadFaceSwapDto {
+  @IsString()
+  @IsNotEmpty()
+  templateId!: string;
+
+  @IsEnum(Gender)
+  gender!: Gender;
+
+  @IsEnum(CharacterType)
+  character!: CharacterType;
+}
+```
+
+---
+
+## Error Handling Rules
+
+### Frontend Error Handling
+```typescript
+// ✅ Type-safe error handling
+import { AxiosError } from 'axios';
+
+interface ApiError {
+  message: string;
+  statusCode: number;
+  error: string;
+}
+
+async function fetchData() {
+  try {
+    const response = await api.get('/data');
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      const apiError = error.response?.data as ApiError;
+      throw new Error(apiError.message || 'Request failed');
+    }
+    throw new Error('An unexpected error occurred');
+  }
+}
+```
+
+### Backend Error Handling
+```typescript
+// ✅ Custom exceptions
+import { HttpException, HttpStatus } from '@nestjs/common';
+
+export class FaceNotDetectedException extends HttpException {
+  constructor(message = 'No face detected in image') {
+    super(message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+// ✅ Exception filter
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import { Response } from 'express';
+
+@Catch(HttpException)
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const status = exception.getStatus();
+    const message = exception.message;
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      error: exception.name,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+```
+
+---
+
+## Code Organization Rules
+
+### File Naming
+- Components: `kebab-case.tsx` (e.g., `image-uploader.tsx`)
+- Types: `*.types.ts` (e.g., `face-swap.types.ts`)
+- Utils: `*.util.ts` (e.g., `validation.util.ts`)
+- Hooks: `use-*.ts` (e.g., `use-face-swap.ts`)
+- Services: `*.service.ts` (e.g., `video-processing.service.ts`)
+- Controllers: `*.controller.ts` (e.g., `face-swap.controller.ts`)
+- DTOs: `*.dto.ts` (e.g., `upload-face-swap.dto.ts`)
+
+### Import Order
+```typescript
+// 1. React/Next imports
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+// 2. Third-party imports
+import { clsx } from 'clsx';
+import axios from 'axios';
+
+// 3. Internal imports - absolute paths
+import { Button } from '@/components/ui/button';
+import { useFaceSwap } from '@/lib/hooks/use-face-swap';
+import { type Template } from '@/lib/types/face-swap.types';
+
+// 4. Relative imports
+import { localHelper } from './utils';
+```
+
+### Export Patterns
+```typescript
+// ✅ Named exports for utilities and hooks
+export function useCustomHook() { }
+export const helper = () => { };
+
+// ✅ Default exports for pages and components
+export default function Page() { }
+export default function Component() { }
+```
+
+---
+
+## Testing Rules
+
+### Unit Tests
+```typescript
+// ✅ Type-safe tests
+import { describe, it, expect } from '@jest/globals';
+import { renderHook, act } from '@testing-library/react';
+import { useFaceSwap } from './use-face-swap';
+
+describe('useFaceSwap', () => {
+  it('should handle upload correctly', async () => {
+    const { result } = renderHook(() => useFaceSwap());
+
+    await act(async () => {
+      await result.current.uploadAndProcess();
+    });
+
+    expect(result.current.isUploading).toBe(false);
+  });
+});
+```
+
+---
+
+## Documentation Rules
+
+### JSDoc Comments
+```typescript
+/**
+ * Processes a video by swapping faces in each frame
+ * 
+ * @param inputPath - Path to the input video file
+ * @param userFacePath - Path to the user's face image
+ * @param outputPath - Path where the processed video will be saved
+ * @param options - Optional processing configuration
+ * @returns Promise that resolves when processing is complete
+ * @throws {FaceNotDetectedException} If no face is detected in the image
+ * @throws {Error} If video processing fails
+ * 
+ * @example
+ * ```typescript
+ * await processVideo(
+ *   '/path/to/video.mp4',
+ *   '/path/to/face.jpg',
+ *   '/path/to/output.mp4',
+ *   { quality: 'high' }
+ * );
+ * ```
+ */
+async processVideo(
+  inputPath: string,
+  userFacePath: string,
+  outputPath: string,
+  options?: ProcessingOptions
+): Promise<void> {
+  // Implementation
+}
+```
+
+---
+
+## Performance Rules
+
+### Optimization Strategies
+```typescript
+// ✅ Use React.memo for expensive components
+import { memo } from 'react';
+
+interface Props {
+  data: ComplexData;
+}
+
+export const ExpensiveComponent = memo(function ExpensiveComponent({ data }: Props) {
+  return <div>{/* Render */}</div>;
+});
+
+// ✅ Use useCallback for event handlers
+const handleClick = useCallback(() => {
+  // Handler logic
+}, [dependencies]);
+
+// ✅ Use useMemo for expensive calculations
+const processedData = useMemo(() => {
+  return expensiveOperation(data);
+}, [data]);
+
+// ✅ Lazy load components
+import { lazy, Suspense } from 'react';
+
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
+
+export function Parent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HeavyComponent />
+    </Suspense>
+  );
+}
+```
+
+---
+
+## Security Rules
+
+### Input Validation
+```typescript
+// ✅ Always validate and sanitize user input
+import { z } from 'zod';
+
+const uploadSchema = z.object({
+  templateId: z.string().uuid(),
+  gender: z.enum(['male', 'female']),
+  character: z.enum(['colleague', 'boss', 'homie']),
+});
+
+function validateUpload(data: unknown) {
+  return uploadSchema.parse(data);
+}
+```
+
+### File Upload Security
+```typescript
+// ✅ Validate file types and sizes
+const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+function validateFile(file: File): void {
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    throw new Error('Invalid file type');
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error('File too large');
+  }
+}
+```
+
+---
+
+## Git Commit Rules
+
+### Commit Message Format
+```
+type(scope): subject
+
+body (optional)
+
+footer (optional)
+```
+
+### Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting)
+- `refactor`: Code refactoring
+- `test`: Adding tests
+- `chore`: Maintenance tasks
+
+### Examples
+```
+feat(face-swap): add face detection service
+
+Implemented face detection using face-api.js with proper TypeScript typing
+and error handling.
+
+Closes #123
+```
+
+---
+
+## Code Review Checklist
+
+Before submitting code, ensure:
+
+- [ ] All TypeScript types are explicit (no 'any')
+- [ ] Components follow Server/Client Component rules
+- [ ] Tailwind CSS 4 syntax is used correctly
+- [ ] Error handling is implemented
+- [ ] Code is properly documented
+- [ ] No console.logs in production code
+- [ ] Performance optimizations applied where needed
+- [ ] Security best practices followed
+- [ ] Tests are written and passing
+- [ ] Code is formatted and linted
+
+---
+
+## When to Break Rules
+
+Rules can be broken when:
+1. There's a clear technical reason (document why)
+2. A third-party library requires it (isolate the violation)
+3. Performance is critically impacted (measure first)
+
+Always document exceptions with comments explaining why.

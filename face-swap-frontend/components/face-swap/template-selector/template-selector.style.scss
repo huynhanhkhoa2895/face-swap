@@ -1,0 +1,32 @@
+.template-selector {
+  @apply p-6 mb-6;
+
+  &__title {
+    @apply text-xl font-bold mb-4;
+  }
+
+  &__loading {
+    @apply text-center py-8 text-gray-500;
+  }
+
+  &__grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  &__item {
+    @apply rounded-lg border-2 border-gray-300 overflow-hidden transition-colors hover:border-primary-500;
+
+    &--active {
+      @apply border-primary-600 ring-2 ring-primary-200;
+    }
+  }
+
+  &__thumbnail {
+    @apply w-full h-48 object-cover;
+  }
+
+  &__name {
+    @apply p-4 font-semibold text-center;
+  }
+}
+

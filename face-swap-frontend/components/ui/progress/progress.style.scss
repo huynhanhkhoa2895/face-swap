@@ -1,0 +1,12 @@
+.progress {
+  @apply w-full h-2 bg-gray-200 rounded-full overflow-hidden;
+
+  &__bar {
+    @apply h-full bg-primary-600 transition-all duration-300 flex items-center justify-center;
+  }
+
+  &__label {
+    @apply text-xs text-white font-semibold;
+  }
+}
+

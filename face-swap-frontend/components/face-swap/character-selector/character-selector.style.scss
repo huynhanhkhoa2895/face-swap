@@ -1,0 +1,24 @@
+.character-selector {
+  @apply p-6 mb-6;
+
+  &__title {
+    @apply text-xl font-bold mb-4;
+  }
+
+  &__options {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  }
+
+  &__option {
+    @apply px-6 py-4 rounded-lg border-2 border-gray-300 font-semibold transition-colors;
+
+    &:hover {
+      @apply border-primary-500 bg-primary-50;
+    }
+
+    &--active {
+      @apply border-primary-600 bg-primary-600 text-white;
+    }
+  }
+}
+

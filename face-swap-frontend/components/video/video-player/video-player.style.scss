@@ -1,0 +1,24 @@
+.video-player {
+  @apply p-6;
+
+  &__content {
+    @apply max-w-4xl mx-auto;
+  }
+
+  &__title {
+    @apply text-2xl font-bold mb-6 text-center;
+  }
+
+  &__video-container {
+    @apply mb-6 rounded-lg overflow-hidden;
+  }
+
+  &__video {
+    @apply w-full h-auto;
+  }
+
+  &__actions {
+    @apply flex justify-center;
+  }
+}
+

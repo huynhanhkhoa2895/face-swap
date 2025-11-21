@@ -1,0 +1,12 @@
+.card {
+  @apply rounded-lg shadow-md;
+
+  &--default {
+    @apply bg-white;
+  }
+
+  &--outlined {
+    @apply border border-gray-200 bg-white;
+  }
+}
+
