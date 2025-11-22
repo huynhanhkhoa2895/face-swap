@@ -1,82 +1,116 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { Template, CharacterType, Gender } from './entities/template.entity';
 import { TemplateFilterDto } from './dto/template-filter.dto';
 
 @Injectable()
-export class TemplateService {
+export class TemplateService implements OnModuleInit {
   private readonly logger = new Logger(TemplateService.name);
-  private templates: Template[] = [];
+  private templates: Map<string, Template> = new Map();
 
-  constructor(private readonly configService: ConfigService) {
-    this.initializeTemplates();
+  constructor(private readonly configService: ConfigService) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.loadTemplates();
   }
 
-  private initializeTemplates(): void {
-    // Initialize with sample templates
-    // In production, this would load from database
-    this.templates = [
-      {
-        id: '1',
-        name: 'Colleague Male Template',
-        character: CharacterType.COLLEAGUE,
-        gender: Gender.MALE,
-        videoPath: 'templates/colleague_male.mp4',
-        thumbnailPath: 'templates/colleague_male_thumb.jpg',
-        duration: 10,
-        fps: 30,
-        resolution: { width: 1920, height: 1080 },
-        facePosition: { x: 500, y: 300, width: 400, height: 400 },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: '2',
-        name: 'Boss Male Template',
-        character: CharacterType.BOSS,
-        gender: Gender.MALE,
-        videoPath: 'templates/boss_male.mp4',
-        thumbnailPath: 'templates/boss_male_thumb.jpg',
-        duration: 10,
-        fps: 30,
-        resolution: { width: 1920, height: 1080 },
-        facePosition: { x: 500, y: 300, width: 400, height: 400 },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: '3',
-        name: 'Homie Male Template',
-        character: CharacterType.HOMIE,
-        gender: Gender.MALE,
-        videoPath: 'templates/homie_male.mp4',
-        thumbnailPath: 'templates/homie_male_thumb.jpg',
-        duration: 10,
-        fps: 30,
-        resolution: { width: 1920, height: 1080 },
-        facePosition: { x: 500, y: 300, width: 400, height: 400 },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
+  /**
+   * Load all template metadata from JSON files
+   */
+  private async loadTemplates(): Promise<void> {
+    const templatesDir = this.configService.get<string>('paths.templates') || './templates';
+    const metadataDir = path.join(templatesDir, 'metadata');
+
+    try {
+      // Check if metadata directory exists
+      try {
+        await fs.access(metadataDir);
+      } catch {
+        this.logger.warn(`Templates metadata directory not found: ${metadataDir}`);
+        this.logger.warn('Creating directory structure...');
+        await fs.mkdir(metadataDir, { recursive: true });
+        return;
+      }
+
+      const files = await fs.readdir(metadataDir);
+      const jsonFiles = files.filter((f) => f.endsWith('.json'));
+
+      if (jsonFiles.length === 0) {
+        this.logger.warn(`No template metadata files found in ${metadataDir}`);
+        return;
+      }
+
+      for (const file of jsonFiles) {
+        try {
+          const filePath = path.join(metadataDir, file);
+          const content = await fs.readFile(filePath, 'utf-8');
+          const templateData = JSON.parse(content) as Template;
+
+          // Convert date strings to Date objects
+          const template: Template = {
+            ...templateData,
+            createdAt: new Date(templateData.createdAt),
+            updatedAt: new Date(templateData.updatedAt),
+          };
+
+          this.templates.set(template.id, template);
+          this.logger.log(`Loaded template: ${template.id} - ${template.name}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(`Failed to load template from ${file}: ${errorMessage}`);
+        }
+      }
+
+      this.logger.log(`✅ Loaded ${this.templates.size} templates`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to load templates: ${errorMessage}`);
+    }
   }
 
   async findAll(filter?: TemplateFilterDto): Promise<Template[]> {
-    let filtered = [...this.templates];
+    let templates = Array.from(this.templates.values());
 
     if (filter?.character) {
-      filtered = filtered.filter((t) => t.character === filter.character);
+      templates = templates.filter((t) => t.character === filter.character);
     }
 
     if (filter?.gender) {
-      filtered = filtered.filter((t) => t.gender === filter.gender);
+      templates = templates.filter((t) => t.gender === filter.gender);
     }
 
-    return filtered;
+    return templates;
   }
 
   async findOne(id: string): Promise<Template | null> {
-    return this.templates.find((t) => t.id === id) || null;
+    return this.templates.get(id) || null;
+  }
+
+  async getTemplateById(id: string): Promise<Template> {
+    const template = this.templates.get(id);
+    if (!template) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+    return template;
+  }
+
+  async getTemplatesByFilter(
+    character?: CharacterType,
+    gender?: Gender,
+  ): Promise<Template[]> {
+    let templates = Array.from(this.templates.values());
+
+    if (character) {
+      templates = templates.filter((t) => t.character === character);
+    }
+
+    if (gender) {
+      templates = templates.filter((t) => t.gender === gender);
+    }
+
+    return templates;
   }
 
   async findByCharacterAndGender(
@@ -84,7 +118,7 @@ export class TemplateService {
     gender: Gender,
   ): Promise<Template | null> {
     return (
-      this.templates.find(
+      Array.from(this.templates.values()).find(
         (t) => t.character === character && t.gender === gender,
       ) || null
     );

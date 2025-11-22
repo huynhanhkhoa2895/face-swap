@@ -15,10 +15,13 @@ export interface VideoResolution {
 }
 
 export interface FacePosition {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number; // X coordinate (pixels from left)
+  y: number; // Y coordinate (pixels from top)
+  width: number; // Width of face region
+  height: number; // Height of face region
+  rotation?: number; // Optional rotation in degrees
+  frameStart?: number; // Optional: frame where this position starts
+  frameEnd?: number; // Optional: frame where this position ends
 }
 
 export interface Template {
@@ -28,10 +31,12 @@ export interface Template {
   gender: Gender;
   videoPath: string;
   thumbnailPath: string;
+  audioPath?: string; // Optional separate audio file
   duration: number;
   fps: number;
   resolution: VideoResolution;
-  facePosition: FacePosition;
+  totalFrames: number;
+  facePositions: FacePosition[]; // Array of face positions (one or multiple for different frames)
   createdAt: Date;
   updatedAt: Date;
 }

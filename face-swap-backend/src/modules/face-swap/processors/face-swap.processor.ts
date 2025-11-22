@@ -2,9 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { VideoProcessingService } from '../services/video-processing.service';
-import { FaceDetectionService } from '../services/face-detection.service';
-import { FaceSwapService } from '../services/face-swap.service';
+import { SimpleFaceSwapService } from '../services/simple-face-swap.service';
 import { TemplateService } from '../../template/template.service';
 import { UserTrackingService } from '../../user-tracking/user-tracking.service';
 import { JobStatus } from '../dto/job-status.dto';
@@ -28,9 +26,7 @@ export class FaceSwapProcessor {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly videoProcessingService: VideoProcessingService,
-    private readonly faceDetectionService: FaceDetectionService,
-    private readonly faceSwapService: FaceSwapService,
+    private readonly simpleFaceSwapService: SimpleFaceSwapService,
     private readonly templateService: TemplateService,
     private readonly userTrackingService: UserTrackingService,
   ) {}
@@ -42,79 +38,31 @@ export class FaceSwapProcessor {
 
     try {
       // Get template
-      const template = await this.templateService.findOne(templateId);
-      if (!template) {
-        throw new Error('Template not found');
-      }
+      const template = await this.templateService.getTemplateById(templateId);
 
-      // Validate user face
-      const validation = await this.faceDetectionService.validateFace(userImagePath);
-      if (!validation.isValid) {
-        throw new Error(`Face validation failed: ${validation.errors.join(', ')}`);
-      }
-
-      // Create temp directories
-      const tempDir = path.join(this.configService.get<string>('paths.temp') || 'temp', jobId);
-      const framesDir = path.join(tempDir, 'frames');
-      const processedFramesDir = path.join(tempDir, 'processed');
-      await fs.mkdir(framesDir, { recursive: true });
-      await fs.mkdir(processedFramesDir, { recursive: true });
-
-      // Extract frames from template video
-      const templateVideoPath = path.join(process.cwd(), template.videoPath);
-      const frameFiles = await this.videoProcessingService.extractFrames(
-        templateVideoPath,
-        framesDir,
-        { fps: template.fps },
-        (progress) => {
-          this.updateJobProgress(jobId, {
-            stage: 'extracting',
-            percentage: progress.percentage,
-            currentFrame: progress.currentFrame,
-            totalFrames: progress.totalFrames,
-          });
-        },
-      );
-
-      // Process each frame
-      let processedCount = 0;
-      for (const framePath of frameFiles) {
-        const frameName = path.basename(framePath);
-        const outputPath = path.join(processedFramesDir, frameName);
-
-        await this.faceSwapService.swapFaceInFrame(framePath, userImagePath, outputPath);
-
-        processedCount++;
-        const percentage = (processedCount / frameFiles.length) * 100;
-        this.updateJobProgress(jobId, {
-          stage: 'processing',
-          percentage,
-          currentFrame: processedCount,
-          totalFrames: frameFiles.length,
-        });
-      }
-
-      // Create video from processed frames
+      // Create output video path
       const outputVideoPath = path.join(
         this.configService.get<string>('paths.outputs') || 'outputs',
         `${jobId}.mp4`,
       );
-      await this.videoProcessingService.framesToVideo(
-        processedFramesDir,
+
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(outputVideoPath), { recursive: true });
+
+      // Process video with progress tracking
+      await this.simpleFaceSwapService.processVideo(
+        template,
+        userImagePath,
         outputVideoPath,
-        { fps: template.fps },
         (progress) => {
           this.updateJobProgress(jobId, {
-            stage: 'rendering',
-            percentage: progress.percentage,
-            currentFrame: progress.currentFrame,
-            totalFrames: progress.totalFrames,
+            stage: 'processing',
+            percentage: progress,
           });
         },
       );
 
-      // Cleanup temp files
-      await this.videoProcessingService.cleanup(tempDir);
+      // Cleanup uploaded file
       await fs.unlink(userImagePath).catch(() => {
         // Ignore cleanup errors
       });

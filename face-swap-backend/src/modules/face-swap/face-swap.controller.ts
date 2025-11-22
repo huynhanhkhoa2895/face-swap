@@ -10,7 +10,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { FaceSwapService } from './services/face-swap.service';
 import { FaceSwapProcessor } from './processors/face-swap.processor';
 import { TemplateService } from '../template/template.service';
 import { UserTrackingService } from '../user-tracking/user-tracking.service';
@@ -23,7 +22,6 @@ import { FileUploadInterceptor } from './interceptors/file-upload.interceptor';
 @Controller('face-swap')
 export class FaceSwapController {
   constructor(
-    private readonly faceSwapService: FaceSwapService,
     private readonly faceSwapProcessor: FaceSwapProcessor,
     private readonly templateService: TemplateService,
     private readonly userTrackingService: UserTrackingService,
@@ -49,8 +47,9 @@ export class FaceSwapController {
     const dto: UploadFaceSwapDto = req.body as UploadFaceSwapDto;
 
     // Validate template exists
-    const template = await this.templateService.findOne(dto.templateId);
-    if (!template) {
+    try {
+      await this.templateService.getTemplateById(dto.templateId);
+    } catch (error) {
       throw new BadRequestException('Template not found');
     }
 
